@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 public class Pistol : MonoBehaviour
 {
-    [Header("Beretta Properties")]
-
+    [Header("1911 Properties")]
     #region Enemy Variables
     public LayerMask zombieMask;
     private float enemyHealth, enemyHealth2;
@@ -15,7 +14,6 @@ public class Pistol : MonoBehaviour
     private ParticleSystem currentBlood;
     public LayerMask floorMask;
     private GameObject currentFX;
-    private GameObject currentTrail;
     private bool canFX;
     #endregion
 
@@ -45,7 +43,7 @@ public class Pistol : MonoBehaviour
     public AudioClip emptyGunSound;
     private bool canBuy;
     public GameManager gm;
-    public Transform arm2;
+    public Transform arm;
     private AudioSource folder;
     public Transform bulletSpawnPos;
     public Transform emptyBulletSpawnPos;
@@ -54,7 +52,7 @@ public class Pistol : MonoBehaviour
     #region Recoil Variables
     private float recTimer;
     private Vector3 startPos;
-    private Vector3 startArm2Pos;
+    private Vector3 startArmPos;
     public Vector3 recoilAmount;
     [SerializeField] private float recoilSpeed;
     #endregion
@@ -69,31 +67,29 @@ public class Pistol : MonoBehaviour
     #region Lists
     [Header("Lists")]
     public List<ParticleSystem> bloodFXS = new List<ParticleSystem>();
-    public List<GameObject> tFXS = new List<GameObject>();
     public List<GameObject> bCapsules = new List<GameObject>();
     public List<GameObject> mags = new List<GameObject>();
-    public List<GameObject> holeFXS = new List<GameObject>();
+    public List<GameObject> holeFxs = new List<GameObject>();
     #endregion
 
     #region Pools
     [Header("Pools")]
     private List<ParticleSystem> bloodFXS2 = new List<ParticleSystem>();
-    private List<GameObject> tFXS2 = new List<GameObject>();
     private List<GameObject> bCapsules2 = new List<GameObject>();
     private List<GameObject> mags2 = new List<GameObject>();
-    private List<GameObject> holeFXS2 = new List<GameObject>();
+    private List<GameObject> holeFxs2 = new List<GameObject>();
     #endregion
 
     private void Awake()
     {
-        startArm2Pos = arm2.localPosition;
+        startArmPos = arm.localPosition;
         startPos = gameObject.transform.localPosition;
     }
     private void Start()
     {
         InvokeRepeating(nameof(LocateMagPos), 0, 3f);
         muzzleFlash.gameObject.SetActive(false);
-        muzzleFlash.Stop();
+        muzzleFlash.Pause();
         folder = GetComponent<AudioSource>();
         canFX = true;
         canFire = true;
@@ -102,7 +98,6 @@ public class Pistol : MonoBehaviour
     }
     private void Update()
     {
-        LocateTrailPos();
         if (gm.buyMenuImage.gameObject.activeInHierarchy == true)
         {
             canBuy = true;
@@ -114,24 +109,23 @@ public class Pistol : MonoBehaviour
         if (Time.timeScale == 0)
         {
             folder.Pause();
-        }
+        }       
 
         #region Shoot
         if (gameObject.activeInHierarchy == true && gm.buyMenuImage.gameObject.activeInHierarchy != true && Time.timeScale != 0)
         {
-            if (Input.GetKeyDown(shootBtn) && canFire == true && canCapsule == true)
+            if (Input.GetKeyDown(shootBtn) || Input.GetKey(shootBtn) && canFire == true && canCapsule == true)
             {
                 if (Input.GetKey(scopeBtn) != true)
                 {
                     if (magAmmo != 0 && canReload == true && canFX == true)
                     {
+                        SpawnBulletHole();
                         BloodFXSpawner();
                         GiveDamage();
                         Recoil();
                         Fire();
                         SpawnCapsule();
-                        SpawnBulletHole();
-                        TrailFXSpawner();
                     }
                     else
                     {
@@ -144,7 +138,7 @@ public class Pistol : MonoBehaviour
                 NonRecoil();
             }
         }
-        #endregion     
+        #endregion
 
         #region Reload
         if (Input.GetKeyDown(reloadKey) && canReload == true && gameObject.activeInHierarchy == true)
@@ -154,17 +148,39 @@ public class Pistol : MonoBehaviour
                 ReloadBullet();
             }
         }
-        #endregion      
+        #endregion
 
     }
+    // FX system
 
-    // FXS
-
-    #region FXS
+    #region FXs   
+    private void SpawnBulletHole()
+    {
+        RaycastHit holeHit;
+        if (Physics.Raycast(bulletSpawnPos.position, -bulletSpawnPos.transform.forward, out holeHit, Mathf.Infinity, floorMask))
+        {
+            FXSpawner();
+            currentFX.transform.position = holeHit.point;
+        }
+    }
+    private void FXSpawner()
+    {
+        holeFxs[0].gameObject.SetActive(true);
+        currentFX = holeFxs[0].gameObject;
+        holeFxs2.Add(currentFX);
+        holeFxs.RemoveAt(0);
+        Invoke(nameof(FXPool), 0.3f);
+    }
+    private void FXPool()
+    {
+        holeFxs2[0].gameObject.SetActive(false);
+        holeFxs.Add(holeFxs2[0].gameObject);
+        holeFxs2.RemoveAt(0);
+    }
     private void BloodFXSpawner()
     {
         RaycastHit bHit;
-        if (Physics.Raycast(bulletSpawnPos.position, bulletSpawnPos.transform.forward, out bHit, Mathf.Infinity, zombieMask))
+        if (Physics.Raycast(bulletSpawnPos.position, -bulletSpawnPos.transform.forward, out bHit, Mathf.Infinity, zombieMask))
         {
             canFX = false;
             BloodFXS();
@@ -188,82 +204,22 @@ public class Pistol : MonoBehaviour
         bloodFXS.Add(bloodFXS2[0]);
         bloodFXS2.RemoveAt(0);
     }
-    private void LocateTrailPos()
-    {
-        for (int i = 0; i < tFXS.Count; i++)
-        {
-            if (tFXS[i].gameObject.activeInHierarchy != true)
-            {
-                bulletSpawnPos.transform.parent = tFXS[i].transform.parent.parent;
-                tFXS[i].transform.parent.parent = bulletSpawnPos.transform;
-                tFXS[i].transform.parent.transform.localPosition = Vector3.zero;
-                tFXS[i].transform.parent.transform.localRotation = bulletSpawnPos.transform.localRotation;
-                tFXS[i].transform.localPosition = Vector3.zero;
-                tFXS[i].GetComponent<Rigidbody>().velocity = Vector3.zero;
-            }
-        }
-    }
-    private void TrailFXSpawner()
-    {
-        tFXS[0].GetComponent<Rigidbody>().velocity = Vector3.zero;
-        tFXS[0].SetActive(true);
-        currentTrail = tFXS[0].gameObject;
-        currentTrail.GetComponent<Rigidbody>().velocity += -bulletSpawnPos.transform.forward * Time.time * 100f;
-        tFXS2.Add(currentTrail);
-        tFXS.RemoveAt(0);
-        Invoke(nameof(TrailFXPool), 0.5f);
-    }
-    private void TrailFXPool()
-    {
-        tFXS2[0].GetComponent<Rigidbody>().velocity = Vector3.zero;
-        tFXS2[0].gameObject.SetActive(false);
-        tFXS.Add(tFXS2[0].gameObject);
-        tFXS2.RemoveAt(0);
-    }
-    private void SpawnBulletHole()
-    {
-        RaycastHit holeHit;
-        if (Physics.Raycast(bulletSpawnPos.position, bulletSpawnPos.transform.forward, out holeHit, Mathf.Infinity, floorMask))
-        {
-            HoleFXSpawner();
-            currentFX.transform.position = holeHit.point;
-        }
-    }
-    public void HoleFXSpawner()
-    {
-        holeFXS[0].gameObject.SetActive(true);
-        currentFX = holeFXS[0].gameObject;
-        holeFXS2.Add(currentFX);
-        holeFXS.RemoveAt(0);
-        Invoke(nameof(HoleFXPool), 0.3f);
-    }
-    public void HoleFXPool()
-    {
-        holeFXS2[0].gameObject.SetActive(false);
-        holeFXS.Add(holeFXS2[0].gameObject);
-        holeFXS.RemoveAt(0);
-    }
-    #endregion   
+    #endregion
 
     // Basic CoolDowns
-
     #region CoolDowns
     IEnumerator CoolDown4Capsule()
     {
-        yield return new WaitForSeconds(0.3f);
+        yield return new WaitForSeconds(0.1f);
         canCapsule = true;
     }
     IEnumerator CoolDown4Fire()
     {
-        yield return new WaitForSeconds(0.3f);
+        yield return new WaitForSeconds(0.1f);
+        muzzleFlash.gameObject.SetActive(false);
+        muzzleFlash.Pause();
         canFire = true;
         canFX = true;
-    }
-    IEnumerator CoolDown4Muzzle()
-    {
-        yield return new WaitForSeconds(0.15f);
-        muzzleFlash.gameObject.SetActive(false);
-        muzzleFlash.Stop();
     }
     IEnumerator CoolDown4Reload()
     {
@@ -274,14 +230,13 @@ public class Pistol : MonoBehaviour
     }
     #endregion
 
-
-    // damage dealing
+    // Damage Dealing
     private void GiveDamage()
     {
         RaycastHit hit;
         if (gameObject.activeInHierarchy == true)
         {
-            if (Physics.Raycast(bulletSpawnPos.position, bulletSpawnPos.transform.forward, out hit, Mathf.Infinity, zombieMask))
+            if (Physics.Raycast(bulletSpawnPos.position, -bulletSpawnPos.transform.forward, out hit, Mathf.Infinity, zombieMask))
             {
                 // Default Zombie Gets Damage
                 if (hit.collider.gameObject.GetComponentInParent<Enemy>() != null)
@@ -391,7 +346,7 @@ public class Pistol : MonoBehaviour
     private void Recoil()
     {
         recTimer += Time.deltaTime;
-        arm2.localPosition = new Vector3(startArm2Pos.x + Mathf.Sin(recTimer) * recoilAmount.x, startArm2Pos.y + Mathf.Sin(recTimer) * recoilAmount.y, startArm2Pos.z + Mathf.Sin(recTimer) * recoilAmount.z);
+        arm.localPosition = new Vector3(startArmPos.x + Mathf.Sin(recTimer) * recoilAmount.x, startArmPos.y + Mathf.Sin(recTimer) * recoilAmount.y, startArmPos.z + Mathf.Sin(recTimer) * recoilAmount.z);
         gameObject.transform.localPosition = new Vector3(startPos.x + Mathf.Sin(recTimer) * recoilAmount.x, startPos.y + Mathf.Sin(recTimer) * recoilAmount.y, startPos.z + Mathf.Sin(recTimer) * recoilAmount.z);
     }
     // Stops Recoil
@@ -399,7 +354,7 @@ public class Pistol : MonoBehaviour
     {
         recTimer = 0;
         gameObject.transform.localPosition = new Vector3(Mathf.Lerp(gameObject.transform.localPosition.x, startPos.x, Time.deltaTime * recoilSpeed), Mathf.Lerp(gameObject.transform.localPosition.y, startPos.y, Time.deltaTime * recoilSpeed), Mathf.Lerp(gameObject.transform.localPosition.z, startPos.z, Time.deltaTime * recoilSpeed));
-        arm2.localPosition = new Vector3(Mathf.Lerp(arm2.localPosition.x, startArm2Pos.x, Time.deltaTime * recoilSpeed), Mathf.Lerp(arm2.localPosition.y, startArm2Pos.y, Time.deltaTime * recoilSpeed), Mathf.Lerp(arm2.localPosition.z, startArm2Pos.z, Time.deltaTime * recoilSpeed));
+        arm.localPosition = new Vector3(Mathf.Lerp(arm.localPosition.x, startArmPos.x, Time.deltaTime * recoilSpeed), Mathf.Lerp(arm.localPosition.y, startArmPos.y, Time.deltaTime * recoilSpeed), Mathf.Lerp(arm.localPosition.z, startArmPos.z, Time.deltaTime * recoilSpeed));
     }
     // Spawns Capsule
     private void SpawnCapsule()
@@ -408,7 +363,7 @@ public class Pistol : MonoBehaviour
         bCapsules[0].gameObject.SetActive(true);
         currentCapsule = bCapsules[0].gameObject;
         bCapsules2.Add(currentCapsule);
-        currentCapsule.gameObject.GetComponent<Rigidbody>().velocity = transform.right * 10f;
+        currentCapsule.gameObject.GetComponent<Rigidbody>().velocity = -transform.right * 10f;
         currentCapsule.transform.position = emptyBulletSpawnPos.position;
         bCapsules.RemoveAt(0);
         Invoke(nameof(CapsulePool), 1f);
@@ -430,7 +385,6 @@ public class Pistol : MonoBehaviour
         canFire = false;
         canFX = false;
         StartCoroutine(nameof(CoolDown4Fire));
-        StartCoroutine(nameof(CoolDown4Muzzle));
     }
     // Reload System And Mag Change
     private void LocateMagPos()
@@ -463,7 +417,7 @@ public class Pistol : MonoBehaviour
             ChangeMag();
         }
     }
-    // changes mag
+    // changes mag 
     private void ChangeMag()
     {
         canReload = false;
@@ -494,4 +448,4 @@ public class Pistol : MonoBehaviour
     {
         totalAmmo += value;
     }
-}
+}                                                                           

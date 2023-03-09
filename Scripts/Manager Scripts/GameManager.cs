@@ -239,7 +239,7 @@ public class GameManager : MonoBehaviour
         distance = Vector3.Distance(player.position, buyZone.position);
         if (Input.GetKeyDown(KeyCode.B))
         {
-            if (distance <= 30f && buyTime > 0)
+            if (distance <= 500f && buyTime > 0)
             {
                 isBuying = !isBuying;
             }

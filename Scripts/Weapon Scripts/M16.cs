@@ -263,7 +263,7 @@ public class M16 : MonoBehaviour
         yield return new WaitForSeconds(3f);
         anim.Stop();
         canReload = true;
-        currentMagAmmo = 30;
+        currentMagAmmo = 20;
     }
     #endregion
 
@@ -440,14 +440,14 @@ public class M16 : MonoBehaviour
     // pushes bullets to mag
     private void ReloadBullet()
     {
-        if (totalAmmo != 0 && canReload == true && magAmmo != 30 && magAmmo - currentMagAmmo <= totalAmmo)
+        if (totalAmmo != 0 && canReload == true && magAmmo != 20 && magAmmo - currentMagAmmo <= totalAmmo)
         {
             currentMagAmmo -= magAmmo;
             totalAmmo -= currentMagAmmo;
             magAmmo += currentMagAmmo;
             ChangeMag();
         }
-        if (magAmmo - currentMagAmmo >= totalAmmo && canReload == true && totalAmmo != 0 && currentMagAmmo != 30)
+        if (magAmmo - currentMagAmmo >= totalAmmo && canReload == true && totalAmmo != 0 && currentMagAmmo != 20)
         {
             currentMagAmmo += totalAmmo;
             totalAmmo = 0;

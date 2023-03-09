@@ -66,7 +66,7 @@ public class Navals : MonoBehaviour
     }
     private void RandomBool()
     {
-        canActive = Random.value > 0.95f;     
+        canActive = Random.value > 0.5f;     
     }
     private void SmallTrailFXSpawner()
     {
