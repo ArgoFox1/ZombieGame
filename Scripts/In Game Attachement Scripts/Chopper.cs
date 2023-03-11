@@ -54,7 +54,7 @@ public class Chopper : MonoBehaviour
     }
     private void RandomBool()
     {
-        canChopperSpawn = Random.value > 0.5f;
+        canChopperSpawn = Random.value > 0.95f;
         if (canChopperSpawn == true)
         {
             folder.PlayOneShot(clip);

@@ -59,7 +59,7 @@ public class F18S : MonoBehaviour
     }
     private void RandomBool()
     {
-        canF18Spawn = Random.value > 0.5f;
+        canF18Spawn = Random.value > 0.95f;
         canPlay = canF18Spawn;
         if (canPlay == true)
         {
